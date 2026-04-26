@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h> 
 
 #define MAX_STRING 100
 #define MAX_DESCRIPTION 200
@@ -221,6 +223,76 @@ void update_threshold(char *district, int value, char *role){
     printf("Threshold updated successufully to %d\n", value);
 
 }
+
+//parse condition
+int parse_condition(const char *input, const char *field, const char *op, const char *value){
+    const char *p1, *p2;
+
+    if(input == NULL || field == NULL || op == NULL || value == NULL) return 0;
+
+    //first ':'
+    p1 = strchr(input, ':');
+    if (p1 == NULL){
+        return 0;
+    }
+
+    //second ':'
+    p2 = strchr(p1 + 1, ':');
+    if (p2 == NULL){
+    return 0;
+    }
+
+    // field
+    strcnpy( field, input, p1 - input);
+    field[p1-input] = '\0';
+    // operator
+    strcnpy( op, p1+1, p2 - p1 -1);
+    field[p1-input] = '\0';
+    // value
+    strcpy(value, p2+1);
+
+    return 1;
+}
+
+// match condition
+int match_condition(Report *r, const char *field, const char *op, const char *value){
+    int num;
+    time_t t;
+
+    //severity
+    if(strcmp(field, "severity")==0){
+        num = atoi(value);
+        if (strcmp(op, "==") ==0) return r->severity == num;
+        if (strcmp(op, "!=") ==0) return r->severity != num;
+        if (strcmp(op, "<") ==0) return r->severity < num;
+        if (strcmp(op, "<=") ==0) return r->severity <= num;
+        if (strcmp(op, ">") ==0) return r->severity > num;
+        if (strcmp(op, ">=") ==0) return r->severity >= num;
+    }
+    // category
+    if (strcmp(field, "category") ==0){
+        if (strcmp(op, "==") ==0) return strcmp(r->category, value) == 0;
+        if (strcmp(op, "!=") ==0) return strcmp(r->category, value) != 0;
+    }
+    // inspector
+    if(strcmp(field, "inspector")==0){
+        if (strcmp(op, "==") ==0) return strcmp(r->inspector,value) == 0;
+        if (strcmp(op, "!=") ==0) return strcmp(r->inspector, value) != 0;
+    }
+    // timestamp
+    if(strcmp(field, "timestamp")==0){
+        t = (time_t)atol(value);
+        if (strcmp(op, "==") ==0) return r->timestamp == num;
+        if (strcmp(op, "!=") ==0) return r->timestamp != num;
+        if (strcmp(op, "<") ==0) return r->timestamp < num;
+        if (strcmp(op, "<=") ==0) return r->timestamp <= num;
+        if (strcmp(op, ">") ==0) return r->timestamp > num;
+        if (strcmp(op, ">=") ==0) return r->timestamp >= num;
+    }
+    return 0;
+}
+
+
 
 int main(int argc, char *argv[]){
     char *role=argv[2];
