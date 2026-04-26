@@ -258,30 +258,30 @@ void update_threshold(char *district, int value, char *role){
 
 //parse condition
 int parse_condition(const char *input, const char *field, const char *op, const char *value){
-    const char *p1, *p2;
+    const char *c1, *c2;
 
     if(input == NULL || field == NULL || op == NULL || value == NULL) return 0;
 
     //first ':'
-    p1 = strchr(input, ':');
-    if (p1 == NULL){
+    c1 = strchr(input, ':');
+    if (c1 == NULL){
         return 0;
     }
 
     //second ':'
-    p2 = strchr(p1 + 1, ':');
-    if (p2 == NULL){
+    c2 = strchr(p1 + 1, ':');
+    if (c2 == NULL){
         return 0;
     }
 
     // field
-    strcpy( field, input, p1 - input);
-    field[p1-input] = '\0';
+    strcpy( field, input, c1 - input);
+    field[c1-input] = '\0';
     // operator
-    strcpy( op, p1+1, p2 - p1 -1);
-    field[p1-input] = '\0';
+    strcpy( op, c1+1, c2 - c1 -1);
+    field[c1-input] = '\0';
     // value
-    strcpy(value, p2+1);
+    strcpy(value, c2+1);
 
     return 1;
 }
