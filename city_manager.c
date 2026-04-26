@@ -63,15 +63,15 @@ void add(char *district, char *user, char *role){
     printf("Report ID: %d", &r.id);
     printf("Inspector: %s", &r.inspector);
     printf("Latitude: ");
-    scanf("%f", &r.latitude;
+    scanf("%f", &r.latitude);
     printf("Longitude: ");
-    scanf("%f", &r.longitude;
+    scanf("%f", &r.longitude);
     printf("Category: "); 
     scanf("%s", &r.category);
     printf("Severity: ");
     scanf("%d", &r.severity);
     printf("Description: ");
-    scanf("%s", &r.description));
+    scanf("%s", &r.description);
     printf("Timestamp: %s", &r.timestamp);
 
     write(fd, &r, sizeof(Report));
@@ -132,7 +132,7 @@ void view(char *district, int id){
     
     Report r;
     while(read(fd, &r, sizeof(Report))==sizeof(Report)){
-        if(r.id==id={
+        if(r.id==id){
             printf("Report ID: %d\n", r.id);
             printf("Inspector: %s\n", r.inspector);
             printf("Latitude: %f\n", r.latitude);
@@ -165,7 +165,7 @@ void remove_report(char district, int id){
     struct stat st;
     stat(path, &st);
 
-    int total_size= st.st_size / sizeof(Report);
+    int total= st.st_size / sizeof(Report);
     Report *arr = malloc(st.st_size);
     read(fd, arr, st.st_size);
     int found=-1;
@@ -191,7 +191,36 @@ void remove_report(char district, int id){
     free(arr);
     close(fd);
 }
-// int filter (thing with ai)
+// updated threshold
+void update_threshold(char *district, int value, char *role){
+    if(strcmp(role, "manager")!=0){
+        printf("only managers can update the treshold");
+        return;
+    }
+
+    char path[256];
+    snprintf(path, sizeof(path), "%s/district.cfg", district);
+
+    struct stat st;
+    if(stat(path, &st)==-1){
+        printf("stat failed");
+        return;
+    }
+
+    mode_t permissions = st.st_mode; & 0777;
+    if(permissions != 0640){
+        printf("permissions changed, expected 0640, found %o", permissions);
+        return;
+    }
+    
+    int fd=open(path, O_WRONLY | O_TRUNC);
+    if(fd<0) return;
+
+    dprintf(fd, "%d\n", value);
+    close(fd);
+    printf("Threshold updated successufully to %d\n", value);
+
+}
 
 int main(int argc, char *argv[]){
     char *role=argv[2];
@@ -205,8 +234,10 @@ int main(int argc, char *argv[]){
         list(district);
     } else if (strcmp(function, "--view")==0){
         view(district, atoi(argv[7]));
-    } else if(strcmp(function, "--remove")==0){
-        remove(district, role, atoi(argv[7]));
+    } else if(strcmp(function, "--remove_report")==0){
+        remove_report(district, role, atoi(argv[7]));
+    } else if (strcmp(function, "--update_threshold")==0){
+        update_threshold(district, atoi(argv[7]), role);
     } else if(strcmp(function, "--filter")==0){
         filter(district, argv[7]);
     }
