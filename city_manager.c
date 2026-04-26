@@ -264,15 +264,11 @@ int parse_condition(const char *input, const char *field, const char *op, const 
 
     //first ':'
     c1 = strchr(input, ':');
-    if (c1 == NULL){
-        return 0;
-    }
+    if (c1 == NULL)   return 0;
 
     //second ':'
     c2 = strchr(p1 + 1, ':');
-    if (c2 == NULL){
-        return 0;
-    }
+    if (c2 == NULL)   return 0;
 
     // field
     strcpy( field, input, c1 - input);
