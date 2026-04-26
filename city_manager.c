@@ -30,7 +30,7 @@ void create_district(char *district){
         mkdir(district, 0750);
         chmod(district, 0750);
     }
-    snprintf(path, sizeof(path), "%s/district.dat", district);
+    snprintf(path, sizeof(path), "%s/reports.dat", district);
     int fd= open(path, O_CREAT, 0664);
     if(fd>=0) close(fd);
     chmod(path, 0664);
@@ -40,6 +40,11 @@ void create_district(char *district){
     if(fd>=0) close(fd);
     chmod(path, 0640);
 
+    char target[256], linkname[256];
+    snprintf(target, sizeof(target), "%s/reports.dat", district);
+    snprintf(linkname, sizeof(linkname), "active_reports-%s", district);
+    symlink(target, linkname);
+        
     snprintf(path, sizeof(path), "%s/logged_district", district);
     int fd= open(path, O_CREAT, 0644);
     if(fd>=0) close(fd);
@@ -123,6 +128,12 @@ void list(char *district){
         printf("Report id: %d\n Inspector %s\n Category: %s\n Severity: %d", r.id, r.inspector, r.category, r.severity);
     }
     close(fd);
+
+    snprintf(path, sizeof(path), "%s/logged_district", district);
+    int fd=open(path, O_WRONLY | O_APPEND);
+    if(fd<0) return;
+    dprintf(fd, "Time: %ld, Role: %s, User: %s, Action: list\n", time(NULL), role, user);
+    close(fd);
 }
 
 // view (view details of a specific report)
@@ -147,8 +158,14 @@ void view(char *district, int id){
             return;
         }
     }
-printf("Report %d not found", id);
-close(fd);
+    printf("Report %d not found", id);
+    close(fd);
+
+    snprintf(path, sizeof(path), "%s/logged_district", district);
+    int fd=open(path, O_WRONLY | O_APPEND);
+    if(fd<0) return;
+    dprintf(fd, "Time: %ld, Role: %s, User: %s, Action: view\n", time(NULL), role, user);
+    close(fd);
 }
 
 // remove report (removes a report given its id)
@@ -159,7 +176,7 @@ void remove_report(char district, int id){
     }
 
     char path[256];
-    snprintf(path, sizeof(path), "%s/district.dat", district);
+    snprintf(path, sizeof(path), "%s/reports.dat", district);
 
     int fd=open(path, O_RDWR);
     if(fd<0) return;
@@ -192,6 +209,15 @@ void remove_report(char district, int id){
 
     free(arr);
     close(fd);
+
+    if(stat(path, &st)==0){
+        printf("Report removed successfully");
+    }
+    snprintf(path, sizeof(path), "%s/logged_district", district);
+    int fd=open(path, O_WRONLY | O_APPEND);
+    if(fd<0) return;
+    dprintf(fd, "Time: %ld, Role: %s, User: %s, Action: remove report\n", time(NULL), role, user);
+    close(fd);
 }
 // updated threshold
 void update_threshold(char *district, int value, char *role){
@@ -222,6 +248,12 @@ void update_threshold(char *district, int value, char *role){
     close(fd);
     printf("Threshold updated successufully to %d\n", value);
 
+    snprintf(path, sizeof(path), "%s/logged_district", district);
+    int fd=open(path, O_WRONLY | O_APPEND);
+    if(fd<0) return;
+    dprintf(fd, "Time: %ld, Role: %s, User: %s, Action: update threshold\n", time(NULL), role, user);
+    close(fd);
+
 }
 
 //parse condition
@@ -239,14 +271,14 @@ int parse_condition(const char *input, const char *field, const char *op, const 
     //second ':'
     p2 = strchr(p1 + 1, ':');
     if (p2 == NULL){
-    return 0;
+        return 0;
     }
 
     // field
-    strcnpy( field, input, p1 - input);
+    strcpy( field, input, p1 - input);
     field[p1-input] = '\0';
     // operator
-    strcnpy( op, p1+1, p2 - p1 -1);
+    strcpy( op, p1+1, p2 - p1 -1);
     field[p1-input] = '\0';
     // value
     strcpy(value, p2+1);
@@ -292,6 +324,42 @@ int match_condition(Report *r, const char *field, const char *op, const char *va
     return 0;
 }
 
+void filter(char *district, char *condition){
+    char path[256];
+    snprintf(path, sizeof(path), "%s/reports.dat", district);
+
+    int fd = opend(path, O_RDONLY);
+    if(fd<0) return;
+
+    Report r;
+    char field[50], op[10], value[50];
+    
+    if(!parse_condition(condition, field, op, value)){
+        close(fd);
+        return;
+    }
+
+    while(read(fd, &r, sizeof(Report))==sizeof(Report)){
+        
+        if(match_condition(&r, field, op, value)){
+            printf("Report ID: %d\n", r.id);
+            printf("Inspector: %s\n", r.inspector);
+            printf("Latitude: %f\n", r.latitude);
+            printf("Longitude: %f\n", r.longitude);
+            printf("Category: %s\n", r.category);
+            printf("Severity: %d\n", r.severity);
+            printf("Description: %s\n", r.description);
+            printf("Timestamp: %s", ctime(&r.timestamp));
+        }
+    }
+    close(fd);
+
+    snprintf(path, sizeof(path), "%s/logged_district", district);
+    int fd=open(path, O_WRONLY | O_APPEND);
+    if(fd<0) return;
+    dprintf(fd, "Time: %ld, Role: %s, User: %s, Action: filter\n", time(NULL), role, user);
+    close(fd);
+}
 
 
 int main(int argc, char *argv[]){
@@ -312,6 +380,8 @@ int main(int argc, char *argv[]){
         update_threshold(district, atoi(argv[7]), role);
     } else if(strcmp(function, "--filter")==0){
         filter(district, argv[7]);
+    } else {
+        printf("no function was matched");
     }
     return 0;
 }
