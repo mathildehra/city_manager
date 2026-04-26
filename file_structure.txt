@@ -1,0 +1,15 @@
+city_manager/
+|----- city_manager.c
+|----- ai_usage.md
+|----- active_reports-1 -> district1/reports.dat
+|----- active_reports-2 ->district2/reports.dat
+|
+|----- district1/
+|	|----- reports.dat
+|	|----- district.cgf
+|	|_---- logged_district
+|
+|_---- district2/
+	|----- reports.dat
+	|----- district.cfg
+	|_---- logged_district
