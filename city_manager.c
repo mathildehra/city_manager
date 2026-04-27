@@ -24,6 +24,7 @@ typedef struct {
 
 //create a district directory
 void create_district(char *district){
+    int fd;
     struct stat st;
     char path[256];
     if(stat(district, &st)==-1){
@@ -31,12 +32,12 @@ void create_district(char *district){
         chmod(district, 0750);
     }
     snprintf(path, sizeof(path), "%s/reports.dat", district);
-    int fd= open(path, O_CREAT, 0664);
+    fd= open(path, O_CREAT, 0664);
     if(fd>=0) close(fd);
     chmod(path, 0664);
 
     snprintf(path, sizeof(path), "%s/district.cfg", district);
-    int fd= open(path, O_CREAT, 0640);
+    fd= open(path, O_CREAT, 0640);
     if(fd>=0) close(fd);
     chmod(path, 0640);
 
@@ -46,7 +47,7 @@ void create_district(char *district){
     symlink(target, linkname);
         
     snprintf(path, sizeof(path), "%s/logged_district", district);
-    int fd= open(path, O_CREAT, 0644);
+    fd= open(path, O_CREAT, 0644);
     if(fd>=0) close(fd);
     chmod(path, 0644);
 }
@@ -78,8 +79,8 @@ void add(char *district, char *user, char *role){
     printf("Severity: ");
     scanf("%d", &r.severity);
     printf("Description: ");
-    scanf("%s", &r.description);
-    printf("Timestamp: %s", &r.timestamp);
+    fgets("%s", &r.description);
+    printf("Timestamp: %s", ctime(&r.timestamp));
 
     write(fd, &r, sizeof(Report));
     close(fd);
@@ -106,7 +107,7 @@ void permissions_string(mode_t mode, char *out){
 }
 
 // list (list all reports and their contents in a district)
-void list(char *district){
+void list(char *district, char *role, char *user){
     char path[256];
     snprintf(path, sizeof(path), "%s/reports.dat", district);
 
@@ -114,7 +115,7 @@ void list(char *district){
     if(stat(path,&st)==-1) return;
 
     char permissions[10];
-    permissions_to_string(st.st_mode, permissions);
+    permissions_string(st.st_mode, permissions);
 
     printf("Permissions: %s\n", permissions);
     printf("Size: %ld\n", st.st_size);
@@ -137,7 +138,7 @@ void list(char *district){
 }
 
 // view (view details of a specific report)
-void view(char *district, int id){
+void view(char *district, int id, char *role, char *user){
     char path[256];
     snprintf(path, sizeof(path), "%s/reports.dat", district);
     int fd=open(path, O_RDONLY);
@@ -169,7 +170,8 @@ void view(char *district, int id){
 }
 
 // remove report (removes a report given its id)
-void remove_report(char district, int id){
+void remove_report(char *district, int id, char *role, char *user){
+    int fd;
     if(strcmp(role, "manager")!=0){
         printf("only managers can remove a report");
         return;
@@ -178,7 +180,7 @@ void remove_report(char district, int id){
     char path[256];
     snprintf(path, sizeof(path), "%s/reports.dat", district);
 
-    int fd=open(path, O_RDWR);
+    fd=open(path, O_RDWR);
     if(fd<0) return;
 
     struct stat st;
@@ -188,7 +190,7 @@ void remove_report(char district, int id){
     Report *arr = malloc(st.st_size);
     read(fd, arr, st.st_size);
     int found=-1;
-    for(int i=0; i<total, i++){
+    for(int i=0; i<total; i++){
         if(arr[i].id==id){
             found=i;
             break;
@@ -214,13 +216,13 @@ void remove_report(char district, int id){
         printf("Report removed successfully");
     }
     snprintf(path, sizeof(path), "%s/logged_district", district);
-    int fd=open(path, O_WRONLY | O_APPEND);
+    fd=open(path, O_WRONLY | O_APPEND);
     if(fd<0) return;
     dprintf(fd, "Time: %ld, Role: %s, User: %s, Action: remove report\n", time(NULL), role, user);
     close(fd);
 }
 // updated threshold
-void update_threshold(char *district, int value, char *role){
+void update_threshold(char *district, int value, char *role, char *user){
     if(strcmp(role, "manager")!=0){
         printf("only managers can update the treshold");
         return;
@@ -235,7 +237,7 @@ void update_threshold(char *district, int value, char *role){
         return;
     }
 
-    mode_t permissions = st.st_mode; & 0777;
+    mode_t permissions = st.st_mode & 0777;
     if(permissions != 0640){
         printf("permissions changed, expected 0640, found %o", permissions);
         return;
@@ -267,14 +269,14 @@ int parse_condition(const char *input, const char *field, const char *op, const 
     if (c1 == NULL)   return 0;
 
     //second ':'
-    c2 = strchr(p1 + 1, ':');
+    c2 = strchr(c1 + 1, ':');
     if (c2 == NULL)   return 0;
 
     // field
-    strcpy( field, input, c1 - input);
+    strncpy( field, input, c1 - input);
     field[c1-input] = '\0';
     // operator
-    strcpy( op, c1+1, c2 - c1 -1);
+    strncpy( op, c1+1, c2 - c1 -1);
     field[c1-input] = '\0';
     // value
     strcpy(value, c2+1);
@@ -310,17 +312,17 @@ int match_condition(Report *r, const char *field, const char *op, const char *va
     // timestamp
     if(strcmp(field, "timestamp")==0){
         t = (time_t)atol(value);
-        if (strcmp(op, "==") ==0) return r->timestamp == num;
-        if (strcmp(op, "!=") ==0) return r->timestamp != num;
-        if (strcmp(op, "<") ==0) return r->timestamp < num;
-        if (strcmp(op, "<=") ==0) return r->timestamp <= num;
-        if (strcmp(op, ">") ==0) return r->timestamp > num;
-        if (strcmp(op, ">=") ==0) return r->timestamp >= num;
+        if (strcmp(op, "==") ==0) return r->timestamp == t;
+        if (strcmp(op, "!=") ==0) return r->timestamp != t;
+        if (strcmp(op, "<") ==0) return r->timestamp < t;
+        if (strcmp(op, "<=") ==0) return r->timestamp <= t;
+        if (strcmp(op, ">") ==0) return r->timestamp > t;
+        if (strcmp(op, ">=") ==0) return r->timestamp >= t;
     }
     return 0;
 }
 
-void filter(char *district, char *condition){
+void filter(char *district, char *condition, char *role, char *user){
     char path[256];
     snprintf(path, sizeof(path), "%s/reports.dat", district);
 
@@ -359,6 +361,11 @@ void filter(char *district, char *condition){
 
 
 int main(int argc, char *argv[]){
+    if(argc<7){
+        printf("not enough arguments");
+        return 1;
+    }
+    
     char *role=argv[2];
     char *user=argv[4];
     char *function=argv[5];
@@ -367,15 +374,15 @@ int main(int argc, char *argv[]){
     if(strcmp(function, "--add")==0){
         add(district, user, role);
     } else if (strcmp(function, "--list")==0){
-        list(district);
+        list(district, user, role);
     } else if (strcmp(function, "--view")==0){
-        view(district, atoi(argv[7]));
+        view(district, atoi(argv[7]), role, user);
     } else if(strcmp(function, "--remove_report")==0){
-        remove_report(district, role, atoi(argv[7]));
+        remove_report(district, atoi(argv[7]), role, user);
     } else if (strcmp(function, "--update_threshold")==0){
-        update_threshold(district, atoi(argv[7]), role);
+        update_threshold(district, atoi(argv[7]), role, user);
     } else if(strcmp(function, "--filter")==0){
-        filter(district, argv[7]);
+        filter(district, argv[7], role, user);
     } else {
         printf("no function was matched");
     }
