@@ -40,16 +40,17 @@ void create_district(char *district){
     fd= open(path, O_CREAT, 0640);
     if(fd>=0) close(fd);
     chmod(path, 0640);
-
-    char target[256], linkname[256];
-    snprintf(target, sizeof(target), "%s/reports.dat", district);
-    snprintf(linkname, sizeof(linkname), "active_reports-%s", district);
-    symlink(target, linkname);
         
     snprintf(path, sizeof(path), "%s/logged_district", district);
     fd= open(path, O_CREAT, 0644);
     if(fd>=0) close(fd);
-    chmod(path, 0644);
+    chmod(path, 0644);    
+
+    char target[256]; 
+    char linkname[256];
+    snprintf(target, sizeof(target), "%s/reports.dat", district);
+    snprintf(linkname, sizeof(linkname), "active_reports-%s", district);
+    symlink(target, linkname);
 }
 
 //add report to a district directory
@@ -83,12 +84,16 @@ void add(char *district, char *user, char *role){
     printf("Timestamp: %s", ctime(&r.timestamp));
 
     write(fd, &r, sizeof(Report));
+    SIGUSR1(fd);
     close(fd);
 
     snprintf(path, sizeof(path), "%s/logged_district", district);
     int fd=open(path, O_WRONLY | O_APPEND);
     if(fd<0) return;
     dprintf(fd, "Time: %ld, Role: %s, User: %s, Action: add\n", time(NULL), role, user);
+    if(int pid==-1){
+        dprintf(fd, "No PID has been fond, the monitor has not been modified");
+    }
     close(fd);
 }
 
@@ -359,6 +364,50 @@ void filter(char *district, char *condition, char *role, char *user){
     close(fd);
 }
 
+//remove a directory
+void remove_district(char *district, char *role, char *user){
+    if(strcmp(role, "manager")!=0){
+        printf("only managers can remove a report");
+        return;
+    }
+
+    char path[256];
+    snprintf(path, sizeof(path), "%s/district", district);
+
+    struct stat st;
+    stat(path, &st);
+
+    if(stat(path, &st)==-1) return;
+
+    int pid=fork();  //if pid=-1 error, if pid==0 in child process, pid>0 in parent prcess
+    if(pid==-1){
+        return;
+    } else if(pid==0){
+        int execlp(rm, "rm", -rf, district);
+    } else if(pid>0){
+        return;
+    }
+    
+    //handler for SIGCHLD if received ->do wait/waitpid
+
+    waitpid(); 
+    if(SIGCHLD)
+    
+
+    snprintf(linkname, sizeof(linkname), "active_reports-%s", district);
+    unlink(linkname);
+
+
+    if(stat(path, &st)==0){
+        printf("district removed successfully");
+    }
+    snprintf(path, sizeof(path), "%s/logged_district", district);
+    fd=open(path, O_WRONLY | O_APPEND);
+    if(fd<0) return;
+    dprintf(fd, "Time: %ld, Role: %s, User: %s, Action: remove district\n", time(NULL), role, user);
+    close(fd);
+}
+
 
 int main(int argc, char *argv[]){
     if(argc<7){
@@ -383,6 +432,8 @@ int main(int argc, char *argv[]){
         update_threshold(district, atoi(argv[7]), role, user);
     } else if(strcmp(function, "--filter")==0){
         filter(district, argv[7], role, user);
+    } else if(strcmp(function, "--remove_district")==0={
+        remove_district(district, role, user);  
     } else {
         printf("no function was matched");
     }
