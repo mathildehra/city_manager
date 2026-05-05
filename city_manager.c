@@ -50,7 +50,7 @@ void create_district(char *district){
     char linkname[256];
     snprintf(target, sizeof(target), "%s/reports.dat", district);
     snprintf(linkname, sizeof(linkname), "active_reports-%s", district);
-    symlink(target, linkname);
+    int symlink(target, linkname);
 }
 
 //add report to a district directory
@@ -83,6 +83,7 @@ void add(char *district, char *user, char *role){
     fgets("%s", &r.description);
     printf("Timestamp: %s", ctime(&r.timestamp));
 
+    //send sigusr1 to child process if report created
     write(fd, &r, sizeof(Report));
     SIGUSR1(fd);
     close(fd);
@@ -91,6 +92,7 @@ void add(char *district, char *user, char *role){
     int fd=open(path, O_WRONLY | O_APPEND);
     if(fd<0) return;
     dprintf(fd, "Time: %ld, Role: %s, User: %s, Action: add\n", time(NULL), role, user);
+//add notifications to log file (if notification received->successfully sent or not->error message)
     if(int pid==-1){
         dprintf(fd, "No PID has been fond, the monitor has not been modified");
     }
@@ -379,7 +381,7 @@ void remove_district(char *district, char *role, char *user){
 
     if(stat(path, &st)==-1) return;
 
-    int pid=fork();  //if pid=-1 error, if pid==0 in child process, pid>0 in parent prcess
+    pid_t pid =fork();  //if pid=-1 error, if pid==0 in child process, pid>0 in parent prcess    
     if(pid==-1){
         return;
     } else if(pid==0){
