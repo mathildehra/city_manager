@@ -10,50 +10,69 @@
 #include <signal.h>
 
 void create_hfile(){
-    struct stat st;
+    pid_t pid= getpid();
     char path[256];
-    if(stat(monitor, &st)==-1){
-    snprintf(path, sizeof(path), "%s/.monitor_pid");
-    int fd= open(path, O_CREAT, 0664);
-    if(fd>=0) close(fd);
-    chmod(path, 0664);
-    } else return;
+    int fd= open(MONITOR_PID_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if(fd<0) exit(1);
+    int len= snprintf(path, sizeof(path), "%s", (long)pid);
+    write(fd, path, (size_t)len);
+    close(fd);
+    printf("PID written to %s", MONITOR_PID_FILE);
 }
 
 //finish delete file
 void delete_file(){
+    if(unlink(MONITOR_PID_FILE)<0){
+        perror("unlink .monitor_pid);
+    }
 }
 
 //receives sigusr1 when a new report has been added
 void sigusr1_handler(int sig){
-    struct sigaction sa;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sa.sa_handler = sigusr1_handler;
-    sigaction(SIGUSR1, &sa, NULL);
-    printf("A new file has been added");
+    ()sig;
+    got_sigusr1=1;
 }
 
 //process ends when receiving sigint
 void sigint_handler(int sig){
-    struct sigaction sa;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flages = 0;
-    sa.sa_handler = sigint_handler;
-    sigaction(SIGINT, &sa, NULL);
-    printf("SIGINT received, ending the process...");
+    ()sig;
+    got_sigint=1;
 }
 
 //add SIGCHLD handler for waitpid
 void sigchld_handler(int sig){
-    
+    ()sig;
+    got_sigchld=1;
 }
 
 int main(){
     create_hfile();
-    sigusr1_handler(sig);
-    sigint_handler(sig);
-    //delete at end of child process, after receiving sigint
+    struct sigaction sa_usr1;
+    memset(&sa_usr1, 0, sizeof(sa_usr1));
+    sa_usr1.sa_handler=sigusr1_handler;
+    sigemptyset(&sa_usr1.sa_mask);
+    sa_usr1.sa_flags=SA_RESTART;
+    if(sigaction(SIGUSR1, &sa_usr1, NULL)<0){
+        perror("sigaction SIGUSR1");
+        exit(1);
+    }
+    struct sigaction sa_int;
+    memset(&sa_int, 0, sizeof(sa_int));
+    sa_int.sa_handler= sigint_handler;
+    sigemptyset(&sa_int.sa_mask);
+    sa_int.sa_flags=0;
+    if(sigaction(SIGINT, &sa_int, NULL)<0){
+        perror("sigaction SIGINT");
+        exit(1);
+    }
+    while(!got_sigint){
+        pause();
+        if(got_sigusr1){
+            got_sigusr1=0;
+            printf("SIGUSR1 received, a new report hzs been added");
+        }
+    }
+printf("SIGINT received, monitor shutting down");
     delete_file():
     return 0;
 }
