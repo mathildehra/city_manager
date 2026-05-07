@@ -39,14 +39,42 @@ The function had:
 - how to parse strings to find a specific character
 - how to write a .md file
 
-
 ## Phase 2
 ### AI tool used
-
+I used ChatGPT to help me with the signal handling setup in `monitor_reports.c` and with the `notify_monitor()` function in `city_manager.c`
 ### Prompts given to AI
+***First prompt for signal handling:***
+I need to write a C program on Linux called monitor_reports. It should write its own PID to a file called .monitor_pid on startup, delete that file on exit, print a message when it receives SIGUSR1, and print a shutdown message and exit when it receives SIGINT. It must use sigaction() and not signal(). Can you show me how to set up the signal handlers?
+
+***Second prompt for notify_monitor():***
+I have a C program that needs to read a PID from a file called .monitor_pid and then send SIGUSR1 to that process using kill(). It should return 1 on success and 0 if anything fails. How should I write this using open() and read() instead of fopen()?
 
 ### What the AI generated
+***First prompt:***
+The AI gave me:
+- two `volatile sig_atomic_t` flags (`got_sigusr1` and `got_sigint`) set inside the handlers
+- `sigaction()` calls for both signals with `SA_RESTART` set on both
+- a `while (!got_sigint) { pause(); }` loop that checks the flags after each signal
+
+***Second prompt:***
+The AI gave me:
+- `open()` and `read()` to read the PID file into a char buffer
+- `strtol()` to convert the string to a `pid_t`
+- a `kill(pid, SIGUSR1)` call with the return value checked
+- returns 0 if the file can't be opened, the PID is invalid, or `kill()` fails
 
 ### What I changed and why
+***First prompt:***
+- removed `SA_RESTART` from the SIGINT handler because with it set, `pause()` would restart instead of returning, so the loop would never actually check `got_sigint` and the program would not shut down
+- added `fflush(stdout)` after every `printf` because when the program runs in the background stdout can be buffered and messages would not appear immediately
+
+***Second prompt:***
+- added a `pid <= 0` check before calling `kill()` because if the file contains garbage or a zero, `kill(0, SIGUSR1)` would send the signal to every process in the process group which is dangerous
+- the logging of success or failure into `logged_district` was written manually since the AI only generated the function itself and not the calling code
 
 ### What I learned
+- the difference between `SA_RESTART` and not using it, and why it matters depending on which system call the signal is supposed to interrupt
+- that signal handlers should only set a flag and that all real work should be done in the main loop to stay async-signal-safe
+- how `kill()` works and why checking the PID before sending a signal is important
+- how `fork()`, `execlp()`, and `waitpid()` work together to run an external command from a C program
+
