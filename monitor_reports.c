@@ -9,6 +9,8 @@
 #include <errno.h>
 #include <signal.h>
 
+#define MONITOR_PID_FILE ".monitor_pid"
+
 void create_hfile(){
     pid_t pid= getpid();
     char path[256];
@@ -43,6 +45,17 @@ void sigint_handler(int sig){
 void sigchld_handler(int sig){
     ()sig;
     got_sigchld=1;
+}
+
+//add function for the pipe
+static void emit(const char *type, const char *text){
+    time_t now = time(NULL);
+    char ts[32];
+    struct tm *t = localtime(&now);
+    strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", t);
+
+    printf("%s|[%s] %s\n", type, ts, text);
+    fflush(stdout);
 }
 
 int main(){
