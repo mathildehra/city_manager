@@ -26,16 +26,10 @@ typedef struct {
     char    inspector[NAME_LEN];
     double  latitude;
     double  longitude;
-    char    category[CATEGORY_LEN];    // flooding, lighting, road
-    int     severity;        // 1=minor, 2=moderate, 3=critical 
+    char    category[CATEGORY_LEN];
+    int     severity;        
     time_t  timestamp;
     char    description[DESC_LEN];
 } Report;
 
-void permissions_to_str(mode_t mode, char *buf); 
-int  check_permission(const char *path, mode_t required_bit);
-void log_action(const char *district, const char *role, const char *user, const char *action);
-int parse_condition(const char *input, char *field, char *op, char *value);
-int match_condition(Report *r, const char *field, const char *op, const char *value);
-
-#endif
+#endif 
