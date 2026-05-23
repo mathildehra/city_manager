@@ -10,7 +10,7 @@
 #include <errno.h>
 
 #define MONITOR_EXE   "./monitor_reports"
-#define SCORER_EXE    "./district_scorer"
+#define SCORER_EXE    "./scorer_process"
 #define LINE_MAX_LEN  1024
 #define MAX_DISTRICTS 64
 
@@ -122,7 +122,7 @@ static pid_t scorer(const char *district, int *read_fd_out){
         }
         close(pipefd[1]);
         execl(SCORER_EXE, SCORER_EXE, district, (char *)NULL);
-        perror("scorer: execl district_scorer");
+        perror("scorer: execl ");
         exit(1);
     }
 
