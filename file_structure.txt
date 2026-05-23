@@ -1,15 +1,75 @@
 city_manager/
-|----- city_manager.c
-|----- ai_usage.md
-|----- active_reports-1 -> district1/reports.dat
-|----- active_reports-2 ->district2/reports.dat
-|
-|----- district1/
-|	|----- reports.dat
-|	|----- district.cgf
-|	|_---- logged_district
-|
-|_---- district2/
-	|----- reports.dat
-	|----- district.cfg
-	|_---- logged_district
+├── city_manager.c          
+├── monitor_reports.c       
+├── scorer_process.c       
+├── city_hub.c      
+├── AI_usage_ALL_phases.md 
+│
+├── active_reports-downtown → downtown/reports.dat  
+├── active_reports-midtown → midtown/reports.dat    
+│
+├── downtown/
+│   ├── reports.dat       
+│   ├── district.cfg      
+│   └── logged_district
+│
+└── midtown/
+    ├── reports.dat      
+    ├── district.cfg      
+    └── logged_district   
+
+
+Reports in downtown (3 reports)
+
+Report 1
+Inspector: alice
+Latitdue: 48.856600
+Longitude: 2.352200
+Category: road
+Severity: 3 (critical)
+Timestamp: 2026-05-13 07:06:43
+Description: Large sinkhole blocking main road
+Added by: manager alice
+
+Report 2
+Inspector: bob
+Latitdue: 48.898300
+Longitude: 2.398000
+Category: lighting
+Severity: 1 (minor)
+Timestamp: 2026-05-13 07:19:20
+Description: Unworking street light 
+Added by: inspector bob
+
+Report 3
+Inspector: alice
+Latitdue: 48.855000
+Longitude: 2.360000
+Category: flooding
+Severity: 3 (critical)
+Timestamp: 2026-05-13 07:24:23
+Description: Severe flooding 
+Added by: manager alice
+
+
+Reports in midtown (2 reports)
+
+Report 1
+Inspector: carol
+Latitdue: 45.765000
+Longitude: 4.866700
+Category: road
+Severity: 1 (minor)
+Timestamp: 2026-05-13 08:04:50
+Description: Minor crack on sidewalk
+Added by: inspector carol
+
+Report 2
+Inspector: alice
+Latitdue: 45.850000
+Longitude: 4.360000
+Category: lighting
+Severity: 2 (moderate)
+Timestamp: 2026-05-23 08:09:14
+Description: Broken traffic light at intersection
+Added by: manager alice
